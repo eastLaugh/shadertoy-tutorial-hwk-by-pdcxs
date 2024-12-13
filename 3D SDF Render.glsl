@@ -10,7 +10,7 @@ vec2 coordTransform(vec2 uv) {
 }
 
 float sdfSphere(in vec3 p) {
-    return length((p - vec3(0., 0., 2.))) - 1.5; //球位置和半径
+    return length((p - vec3(0., 0., .5))) - 1.5; //球位置和半径
 }
 
 float rayMarch(in vec3 ro, in vec3 rd) {
@@ -34,15 +34,28 @@ vec3 calcNormal(in vec3 p) // for function f(p)
         k.xxx * sdfSphere(p + k.xxx * h));
 }
 
+mat3 setCamera(vec3 ta, vec3 ro, float cr) { //target,raycast origin, camera rotation
+    vec3 z = normalize(ta - ro);
+    vec3 cp = vec3(sin(cr), cos(cr), 0.);
+    vec3 x = normalize(cross(z, cp));
+    vec3 y = cross(x, z);
+    return mat3(x, y, z);
+
+}
+
 void render(vec2 uv, out vec3 color) {
-    vec3 ro = vec3(0., 0., -1.5);     //相机位置
-    vec3 rd = normalize(vec3(uv, .0) - ro);
+
+    vec3 ro = vec3(2. * cos(iTime), 1., 2. * sin(iTime));     //相机位置  mat*ro=vec3(0.)
+    vec3 ta = vec3(0., 0., 0.); //观察目标
+    mat3 cam = setCamera(ta, ro, 0.); //相机矩阵
+
+    vec3 rd = normalize(cam * vec3(uv, 1.));
     float t = rayMarch(ro, rd);
     if(t < TMAX) {
         vec3 p = ro + t * rd;
         vec3 n = calcNormal(p);
-        vec3 light = vec3(1., 2., 0.); //光源位置
-        float dif = clamp(dot(normalize(light - p), n),0.,1.);
+        vec3 light = vec3(2., 1., 0.); //光源位置
+        float dif = clamp(dot(normalize(light - p), n), 0., 1.);
         float amb = .5 + .5 * dot(n, vec3(0., 1., 0.));
         color = sqrt(amb * vec3(.25, .23, .23) + dif * vec3(1.));
     }
